@@ -1,0 +1,28 @@
+# Ignore Python virtual environment
+venv/
+
+# Ignore local Python package installation
+*.egg-info/
+dist/
+build/
+
+# Ignore any local .terraform directories
+**/.terraform/*
+
+# Ignore terraform tfstate and tfvars files
+*.tfstate
+*.tfstate.backup
+*.tfvars
+
+# Ignore any compiled Python bytecode
+__pycache__/
+
+# Ignore local environment file
+.env
+
+# Ignore any output files
+*.zip
+
+
+
+

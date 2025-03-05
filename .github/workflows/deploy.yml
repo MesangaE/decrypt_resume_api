@@ -1,0 +1,72 @@
+name: Deploy
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'terraform/**'
+      - '.github/workflows/deploy.yml'
+      - 'lambda_function/**'
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v3
+
+      - name: Configure AWS credentials
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          aws-secret-access-key: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          aws-region: ${{ secrets.AWS_REGION }}
+
+      - name: Package Lambda function 
+        run: |
+          cd lambda_function
+          zip -r ../terraform/lambda_function.zip . -x "venv/*"
+          echo "Lambda function zipped"
+
+      - name: Set up Terraform
+        uses: hashicorp/setup-terraform@v3
+    
+      - name: Make scripts executable
+        working-directory: ./terraform
+        run: |
+          chmod +x ./scripts/upload_to_s3.sh
+          chmod +x ./scripts/upload_resume.py
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --upgrade pip
+          pip install boto3
+      
+      - name: Create s3 backend
+        working-directory: ./terraform/modules/remote_state
+        run: |
+          terraform init
+          terraform apply -auto-approve
+
+      - name: Decrypt tfvars file and Initialize Terraform
+        working-directory: ./terraform
+        run: |
+          gpg --quiet --batch --yes --decrypt --passphrase="$SECRET_PASSPHRASE" --output variables.tfvars variables.tfvars.gpg
+          terraform init -reconfigure
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
+          SECRET_PASSPHRASE: ${{ secrets.SECRET_PASSPHRASE }}
+
+      - name: Apply Terraform changes
+        working-directory: ./terraform
+        run: terraform apply -auto-approve -var-file="variables.tfvars"
+        env:
+          AWS_ACCESS_KEY_ID: ${{ secrets.AWS_ACCESS_KEY_ID }}
+          AWS_SECRET_ACCESS_KEY: ${{ secrets.AWS_SECRET_ACCESS_KEY }}
+          AWS_REGION: ${{ secrets.AWS_REGION }}
