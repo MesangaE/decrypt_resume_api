@@ -3,7 +3,7 @@ provider "aws" {
 }
 
 resource "aws_s3_bucket" "terraform_state" {
-  bucket = "mesanga_resume"
+  bucket = "mesanga-resume"
 
   lifecycle {
     prevent_destroy = true

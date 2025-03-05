@@ -3,7 +3,7 @@ terraform {
     bucket         = "mesanga_resume"
     key            = "terraform.tfstate"
     region         = "eu-north-1"
-    dynamodb_table = "app-state"
+    dynamodb_table = "resume-state"
     encrypt        = true
   }
 }
